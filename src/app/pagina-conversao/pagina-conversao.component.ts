@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import {Component, EventEmitter} from '@angular/core';
 
 @Component({
   selector: 'app-pagina-conversao',
@@ -6,5 +6,8 @@ import { Component } from '@angular/core';
   styleUrls: ['./pagina-conversao.component.css']
 })
 export class PaginaConversaoComponent {
+  onUpload: EventEmitter<any> = new EventEmitter<any>();
+  onError: EventEmitter<any> = new EventEmitter<any>();
+
 
 }

@@ -1,1 +1,13 @@
-<p>pagina-conversao works!</p>
+<div class="grid m-0 p-0">
+  <label>Upload</label>
+  <p-fileUpload [name]="'anexo'"
+                [mode]="'basic'"
+                [chooseIcon]="'pi pi-upload'"
+                [multiple]="false"
+                [maxFileSize]="100000000"
+                [chooseLabel]="'Selecione o arq'"
+                [accept]="'*'"
+                (onUpload)="onUpload.emit($event)"
+                (onError)="onError.emit()">
+  </p-fileUpload>
+</div>
