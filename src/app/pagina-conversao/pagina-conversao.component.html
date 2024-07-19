@@ -1,13 +1,15 @@
-<div class="grid m-0 p-0">
-  <label>Upload</label>
-  <p-fileUpload [name]="'anexo'"
-                [mode]="'basic'"
-                [chooseIcon]="'pi pi-upload'"
-                [multiple]="false"
-                [maxFileSize]="100000000"
-                [chooseLabel]="'Selecione o arq'"
-                [accept]="'*'"
-                (onUpload)="onUpload.emit($event)"
-                (onError)="onError.emit()">
-  </p-fileUpload>
+<div class="flex m-0 p-0" style="border: 3px solid">
+  <h2>Upload de Arquivo JSP</h2>
+  <input type="file" (change)="selecionarArquivo($event)" accept=".jsp" required/>
+
+  <button>
+    Corrigir
+  </button>
+
+  <div class="col-12" style="border: 1px solid" *ngIf="fileContent">
+    <h3>Conteúdo do Arquivo:</h3>
+    <pre>{{ fileContent }}</pre>
+  </div>
+
 </div>
+
