@@ -8,7 +8,7 @@ import {Component} from '@angular/core';
 export class PaginaConversaoComponent {
   fileContent: string | null = null;
   modifiedContent: string | null = null;
-  componentsArray: string[][] = []; // Array para armazenar componentes filhos de cada form
+  filhos: any[] = [];
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -39,84 +39,42 @@ export class PaginaConversaoComponent {
 
       while ((match = formPattern.exec(content)) !== null) {
         let formContent = match[1];
-
-        // Extraímos os componentes filhos do <h:form>
+        formContent = this.modifyClearDivs(formContent);
+        // Extraímos os componentes do form
         const components = this.extractComponents(formContent);
-
-        // Adicionamos os componentes extraídos ao array de componentes
-        this.componentsArray.push(components);
+        this.filhos.push(components);
 
         // Modificamos o conteúdo dentro da tag <h:form>
-        formContent = this.modifyFormContent(formContent);
-
-        modifiedForms.push(`<h:form>${formContent}</h:form>`);
+        const modifiedFormContent = components.map(component => this.modifyFormContent(component)).join('');
+        modifiedForms.push(`<h:form>${modifiedFormContent}</h:form>`);
       }
 
-      setTimeout(() => {
-        console.log(this.componentsArray);
-      })
+      console.log(this.filhos[0]);
       // Reconstruímos o conteúdo completo substituindo as tags <h:form> originais
       this.modifiedContent = content.replace(formPattern, () => modifiedForms.shift() || '');
     }
   }
 
   extractComponents(formContent: string): string[] {
-    // Regex para identificar <div>, <t:div> e outros componentes dentro do <h:form>
-    const componentPattern = /<div[^>]*>[\s\S]*?<\/div>|<t:div[^>]*>[\s\S]*?<\/t:div>|<[^\/>]+>[\s\S]*?<\/[^>]+>/g;
     const components = [];
-    let match;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<div>${formContent}</div>`, 'text/html');
+    const formElement = doc.body.firstChild!;
 
-    while ((match = componentPattern.exec(formContent)) !== null) {
-      const component = match[0];
-
-      // Limpeza dos caracteres de controle
-      const cleanedComponent = this.cleanComponent(component);
-
-      // Filtragem manual para ignorar <div> com style="clear: both"
-      if (!(/<div[^>]*style\s*=\s*["'][^"']*clear:\s*both[^"']*["'][^>]*>/i).test(cleanedComponent)) {
-        components.push(cleanedComponent);
+    formElement.childNodes.forEach(node => {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        components.push((node as HTMLElement).outerHTML);
       }
-    }
+    });
 
     return components;
   }
 
-  cleanComponent(component: string): string {
-    // Remove os caracteres de controle e normaliza o texto
-    return component
-      .replace(/\r\n/g, '')  // Remove quebras de linha
-      .replace(/\r/g, '')    // Remove retorno de carro
-      .replace(/\n/g, '')    // Remove novas linhas
-      .replace(/\t/g, '');   // Remove tabulações
-  }
-
-  modifyFormContent(formContent: string): string {
+  modifyFormContent(component: string): string {
     // Aqui você pode fazer as substituições necessárias
-    formContent = formContent.replace(/<div[^>]*style="[^"]*">([\s\S]*?)<\/div>/g, (match, innerContent) => {
-      const labelPattern = /<label[^>]*>([\s\S]*?)<\/label>/;
-      const inputTextPattern = /<h:inputText([^>]*)>/;
-
-      const labelMatch = labelPattern.exec(innerContent);
-      const inputTextMatch = inputTextPattern.exec(innerContent);
-
-      if (labelMatch && inputTextMatch) {
-        const labelText = labelMatch[1];
-        const inputTextAttributes = inputTextMatch[1];
-
-        return `
-          <div class="col-md-12 form-group">
-            <h:outputLabel>${labelText}</h:outputLabel>
-            <h:inputText${inputTextAttributes.trim()}
-                         class="form-control">
-            </h:inputText>
-          </div>
-        `;
-      }
-
-      return match;
-    });
-
-    return formContent;
+    return component.replace(/<div[^>]*>/g, '<div class="col-md-12 form-group">')
+      .replace(/<label[^>]*>([\s\S]*?)<\/label>/g, '<h:outputLabel>$1</h:outputLabel>')
+      .replace(/<h:inputText([^>]*)>/g, '<h:inputText$1 class="form-control">');
   }
 
   downloadModifiedContent(): void {
@@ -131,5 +89,18 @@ export class PaginaConversaoComponent {
       a.click();
       window.URL.revokeObjectURL(url);
     }
+  }
+
+  cleanComponent(component: string): string {
+    // Remove os caracteres de controle e normaliza o texto
+    return component
+      .replace(/\r\n/g, '')  // Remove quebras de linha
+      .replace(/\r/g, '')    // Remove retorno de carro
+      .replace(/\n/g, '')    // Remove novas linhas
+      .replace(/\t/g, '');   // Remove tabulações
+  }
+
+  modifyClearDivs(content: string): string {
+    return content.replace(/<div\s+style\s*=\s*["'][^"']*clear:[^"']*["'][^>]*\/>/gi, '');
   }
 }
