@@ -1,15 +1,17 @@
-<div class="flex m-0 p-0" style="border: 3px solid">
+<div>
   <h2>Upload de Arquivo JSP</h2>
-  <input type="file" (change)="selecionarArquivo($event)" accept=".jsp" required/>
+  <input type="file" (change)="onFileSelected($event)" accept=".jsp" required/>
 
-  <button>
-    Corrigir
-  </button>
-
-  <div class="col-12" style="border: 1px solid" *ngIf="fileContent">
-    <h3>Conteúdo do Arquivo:</h3>
+  <div *ngIf="fileContent">
+    <h3>Conteúdo Original do Arquivo:</h3>
     <pre>{{ fileContent }}</pre>
+
+    <button (click)="modifyContent()">Modificar Conteúdo</button>
+    <button (click)="downloadModifiedContent()">Baixar Conteúdo Modificado</button>
   </div>
 
+  <div *ngIf="modifiedContent">
+    <h3>Conteúdo Modificado do Arquivo:</h3>
+    <pre>{{ modifiedContent }}</pre>
+  </div>
 </div>
-
