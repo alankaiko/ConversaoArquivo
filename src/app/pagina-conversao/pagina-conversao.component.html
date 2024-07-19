@@ -6,13 +6,13 @@
     <h3>Conteúdo Original do Arquivo:</h3>
 <!--    <pre>{{ fileContent }}</pre>-->
 
-    <button (click)="modifyContent()">Modificar Conteúdo</button>
+    <button (click)="montarConteudo()">Montar Conteudo Geral</button>
     <button (click)="downloadModifiedContent()">Baixar Conteúdo Modificado</button>
-    <button (click)="mosttrar()">Mostrar array</button>
+    <button (click)="montarFView()">Mostrar array</button>
   </div>
 
-  <div *ngIf="filhosFview">
+  <div *ngIf="conteudoPrincipal">
     <h3>Conteúdo Modificado do Arquivo:</h3>
-    <pre>{{ filhosFview }}</pre>
+    <pre>{{ conteudoPrincipal }}</pre>
   </div>
 </div>

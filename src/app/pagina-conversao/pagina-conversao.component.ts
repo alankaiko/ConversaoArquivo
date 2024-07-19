@@ -7,7 +7,7 @@ import {Component} from '@angular/core';
 })
 export class PaginaConversaoComponent {
   fileContent: string | null = null;
-  modifiedContent: string | null = null;
+  conteudoPrincipal: string | null = null;
   filhos: any[] = [];
   filhosFview: any[] = [];
 
@@ -29,17 +29,49 @@ export class PaginaConversaoComponent {
     reader.readAsArrayBuffer(file);
   }
 
+  montarConteudo() {
+    let adicionarImportBsit = this.adicionarImportBsit(this.fileContent);
+    let colocarTagFecharSaveState = this.convertSelfClosingTags(adicionarImportBsit);
+
+    this.filhosFview = this.extractFViewChildren(colocarTagFecharSaveState);
+
+    this.conteudoPrincipal = this.conteudoSoComFView(colocarTagFecharSaveState);
+  }
+
+  montarFView() {
+    let saveStateComponents = this.filterSaveStateComponents();
+    this.conteudoPrincipal = this.adicionarSaveStateFView(saveStateComponents);
+    console.log(this.conteudoPrincipal);
+    console.log(this.filhosFview);
+  }
+
+  adicionarSaveStateFView(tags: string[]): string {
+    // Regex para encontrar as tags <f:view> e substituir seu conteúdo pelas tags
+    const fViewPattern = /(<f:view[^>]*>)([\s\S]*?)(<\/f:view>)/gi;
+    return this.conteudoPrincipal.replace(fViewPattern, (match, p1, p2, p3) => {
+      // Substitui o conteúdo entre as tags <f:view> pelo conteúdo das tags
+      return `${p1}${tags}${p3}`;
+    });
+  }
+
+  filterSaveStateComponents(): string[] {
+    // Filtra os componentes que são <t:saveState> e armazena em uma nova lista
+    const saveStateComponents = this.filhosFview.filter(component => /<t:saveState[^>]*>/i.test(component));
+
+    // Atualiza a lista global removendo os componentes <t:saveState>
+    this.filhosFview = this.filhosFview.filter(component => !/<t:saveState[^>]*>/i.test(component));
+
+    // Retorna a lista de componentes <t:saveState>
+    return saveStateComponents;
+  }
+
   modifyContent(): void {
     this.filhos = [];
+    this.filhosFview = [];
+
     if (this.fileContent) {
-      let modifiedContent = this.convertSelfClosingTags(this.fileContent);
-
-      const fViewChildren = this.extractFViewChildren(modifiedContent);
-      console.log(fViewChildren);
 
 
-      // let content = this.addPageTitleToFView(this.fileContent);
-      //
       // // Extraímos o conteúdo das tags <h:form>
       // const formPattern = /<h:form[^>]*>([\s\S]*?)<\/h:form>/g;
       // let match;
@@ -61,6 +93,7 @@ export class PaginaConversaoComponent {
       // this.modifiedContent = content.replace(formPattern, () => modifiedForms.shift() || '');
     }
   }
+
 
   extractComponents(formContent: string): string[] {
     const components = [];
@@ -85,9 +118,9 @@ export class PaginaConversaoComponent {
   }
 
   downloadModifiedContent(): void {
-    if (this.modifiedContent) {
+    if (this.conteudoPrincipal) {
       const encoder = new TextEncoder();
-      const uint8Array = encoder.encode(this.modifiedContent);
+      const uint8Array = encoder.encode(this.conteudoPrincipal);
       const blob = new Blob([uint8Array], {type: 'text/plain;charset=iso-8859-1'});
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -115,11 +148,6 @@ export class PaginaConversaoComponent {
     });
   }
 
-  mosttrar() {
-    this.filhos[0] = this.filterDivsWithClearBoth(this.filhos[0]);
-    console.log(this.filhos);
-  }
-
   addPageTitleToFView(content: string): string {
     // Define o novo componente que será adicionado
     const pageTitleComponent = `\n<bsit:pageTitle title="" code="" module="TM" bean="#{}"/>`;
@@ -134,7 +162,6 @@ export class PaginaConversaoComponent {
 
     return modifiedContent;
   }
-
 
   convertSelfClosingTags(content: string): string {
     return content.replace(/<(\w+:\w+)([^>]*?)\/>/g, '<$1$2></$1>');
@@ -164,6 +191,26 @@ export class PaginaConversaoComponent {
     }
 
     return childrenArray;
+  }
+
+  conteudoSoComFView(content: string): string {
+    return content.replace(/<f:view[^>]*>[\s\S]*?<\/f:view>/, () => {
+      return `<f:view contentType="text/html"></f:view>`;
+    });
+  }
+
+  adicionarImportBsit(content: string): string {
+    // Regex para identificar a tag <jsp:root> e seus atributos
+    const jspRootPattern = /<jsp:root([^>]*)>/;
+
+    return content.replace(jspRootPattern, (match, attributes) => {
+      // Verificar se o xmlns:bsit já está presente
+      if (!attributes.includes('xmlns:bsit')) {
+        // Adicionar o xmlns:bsit ao atributo
+        attributes += ' \nxmlns:bsit="http://facelets.bsit-br.com.br"';
+      }
+      return `<jsp:root${attributes}>`;
+    });
   }
 
 
