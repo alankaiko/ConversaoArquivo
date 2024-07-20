@@ -1,18 +1,13 @@
 <div>
   <h2>Upload de Arquivo JSP</h2>
-  <input type="file" (change)="onFileSelected($event)" accept=".jsp" required/>
+  <input type="file" (change)="selecionarArquivo($event)" accept=".jsp" required/>
 
-  <div *ngIf="fileContent">
-    <h3>Conteúdo Original do Arquivo:</h3>
-<!--    <pre>{{ fileContent }}</pre>-->
-
+  <div *ngIf="conteudoOriginal">
     <button (click)="montarConteudo()">Montar Conteudo Geral</button>
-    <button (click)="downloadModifiedContent()">Baixar Conteúdo Modificado</button>
-    <button (click)="montarFView()">Mostrar array</button>
   </div>
 
-  <div *ngIf="conteudoPrincipal">
+  <div *ngIf="conteudoPrincipalFinal">
     <h3>Conteúdo Modificado do Arquivo:</h3>
-    <pre>{{ conteudoPrincipal }}</pre>
+    <pre>{{ conteudoPrincipalFinal }}</pre>
   </div>
 </div>
