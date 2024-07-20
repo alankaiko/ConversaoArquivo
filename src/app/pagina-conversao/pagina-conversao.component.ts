@@ -41,16 +41,21 @@ export class PaginaConversaoComponent {
   montarFView() {
     let saveStateComponents = this.filterSaveStateComponents();
     this.conteudoPrincipal = this.adicionarSaveStateFView(saveStateComponents);
+
+
     console.log(this.conteudoPrincipal);
     console.log(this.filhosFview);
   }
 
   adicionarSaveStateFView(tags: string[]): string {
+    // Converte o array de tags para uma única string sem vírgulas
+    const tagsString = tags.join('');
+
     // Regex para encontrar as tags <f:view> e substituir seu conteúdo pelas tags
     const fViewPattern = /(<f:view[^>]*>)([\s\S]*?)(<\/f:view>)/gi;
     return this.conteudoPrincipal.replace(fViewPattern, (match, p1, p2, p3) => {
       // Substitui o conteúdo entre as tags <f:view> pelo conteúdo das tags
-      return `${p1}${tags}${p3}`;
+      return `${p1}${tagsString}${p3}`;
     });
   }
 
@@ -61,8 +66,22 @@ export class PaginaConversaoComponent {
     // Atualiza a lista global removendo os componentes <t:saveState>
     this.filhosFview = this.filhosFview.filter(component => !/<t:saveState[^>]*>/i.test(component));
 
+    // Encontra o primeiro <div> ou <t:div> que contém <rich:messages> como filho direto
+    const index = this.filhosFview.findIndex(component =>
+      /<div[^>]*>[\s\S]*<rich:messages[^>]*>[\s\S]*<\/rich:messages>[\s\S]*<\/div>/i.test(component) ||
+      /<t:div[^>]*>[\s\S]*<rich:messages[^>]*>[\s\S]*<\/rich:messages>[\s\S]*<\/t:div>/i.test(component)
+    );
+
+    let firstDivWithRichMessages = '';
+
+    if (index !== -1) {
+      firstDivWithRichMessages = this.filhosFview[index];
+      // Remove o componente da lista global
+      this.filhosFview.splice(index, 1);
+    }
+
     // Retorna a lista de componentes <t:saveState>
-    return saveStateComponents;
+    return saveStateComponents.concat(firstDivWithRichMessages ? [firstDivWithRichMessages] : []);
   }
 
   modifyContent(): void {
@@ -70,8 +89,6 @@ export class PaginaConversaoComponent {
     this.filhosFview = [];
 
     if (this.fileContent) {
-
-
       // // Extraímos o conteúdo das tags <h:form>
       // const formPattern = /<h:form[^>]*>([\s\S]*?)<\/h:form>/g;
       // let match;
