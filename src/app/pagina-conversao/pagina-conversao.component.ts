@@ -46,7 +46,7 @@ export class PaginaConversaoComponent {
 
     const mainForm = this.captureMainForm(documentoTotal);
     if (mainForm) {
-      this.manipularFormularios(documentoTotal);
+      this.createDivFormRow(mainForm);
       console.log(documentoTotal);
       console.log(this.filhosForm);
     }
@@ -56,60 +56,43 @@ export class PaginaConversaoComponent {
   }
 
   captureMainForm(documentoTotal: Document): HTMLElement | null {
-    // Captura todos os elementos <h:form> no documento
     const forms = Array.from(documentoTotal.querySelectorAll('h\\:form')) as HTMLElement[];
 
-    // Itera sobre todos os formulários encontrados
     for (let form of forms) {
       if (!this.isInsideModalPanel(form)) {
-        // Inicializa o array filhosForm
         this.filhosForm = [];
-
-        // Remove e processa <ul> e <li>
         this.processarUlEli(form);
-
-        // Remove cada filho do formulário e adiciona ao array filhosForm
         this.removeAndStoreChildren(form);
-
         return form;
       }
     }
 
-    // Se todos os formulários encontrados estiverem dentro de <rich:modalPanel>, retorna null
     return null;
   }
 
   private processarUlEli(form: HTMLElement): void {
-    // Captura todas as <ul> dentro do <h:form>
     const uls = Array.from(form.querySelectorAll('ul')) as HTMLElement[];
 
     uls.forEach(ul => {
-      // Captura todos os filhos <li> do <ul>
       const lis = Array.from(ul.querySelectorAll('li')) as HTMLElement[];
 
       lis.forEach(li => {
-        // Move o conteúdo da <li> para o pai do <ul>
         Array.from(li.children).forEach(child => {
-          form.insertBefore(child, ul); // Insere os filhos de <li> diretamente no <form>
+          form.insertBefore(child, ul); // Move children of <li> directly to form
         });
       });
 
-      // Remove o <ul> do DOM
-      ul.remove();
+      ul.remove(); // Remove <ul> from DOM
     });
   }
 
   private removeAndStoreChildren(form: HTMLElement): void {
-    // Cria uma cópia dos filhos do formulário para iterar
     const children = Array.from(form.children) as HTMLElement[];
 
-    // Itera sobre a cópia dos filhos
     children.forEach(child => {
       if (child instanceof HTMLElement) {
-        // Adiciona o filho ao array filhosForm
-        this.filhosForm.push(child);
-        // Remove o filho do formulário
-        form.removeChild(child);
+        this.filhosForm.push(child); // Store the child element
+        form.removeChild(child); // Remove the child from form
       }
     });
   }
@@ -179,5 +162,73 @@ export class PaginaConversaoComponent {
     if (forms.length > 0) {
       this.moveLiToParent(forms[0]);
     }
+  }
+
+  private createDivFormRow(form: HTMLElement): void {
+    const divFormRow = document.createElement('div');
+    divFormRow.className = 'form-row';
+
+    // Adiciona ao <form> o novo <div class="form-row">
+    form.appendChild(divFormRow);
+  }
+
+  private addFirstChildWithLabelAndInput(container: HTMLElement): void {
+    if (this.filhosForm.length > 0) {
+      // Pega o primeiro item do array filhosForm
+      const firstChild = this.filhosForm[1] as HTMLElement;
+
+      // Verifica se o item possui <label> e <input>
+      const hasLabel = !!firstChild.querySelector('label');
+      const hasInput = !!firstChild.querySelector('h\\:inputText');
+
+      if (hasLabel && hasInput) {
+        container.appendChild(this.transformToColMd4FormGroup(firstChild)); // Adiciona ao <div class="form-row">
+      }
+    }
+  }
+
+  private transformToColMd4FormGroup(originalDiv: HTMLElement): HTMLElement {
+    // Cria a nova div com a classe desejada
+    const newDiv = document.createElement('div');
+    newDiv.className = 'col-md-4 form-group';
+
+    // Encontra o <label> e o <input> no div original
+    const label = originalDiv.querySelector('label');
+    const input = originalDiv.querySelector('h\\:inputtext');
+
+    if (label && input) {
+      // Cria o novo <h:outputLabel> e transfere o conteúdo do <label>
+      const outputLabel = document.createElement('h:outputLabel');
+      outputLabel.setAttribute('for', input.getAttribute('id') || '');
+
+      // Cria o conteúdo do <h:outputLabel> a partir do <label>
+      outputLabel.innerHTML = label.innerHTML;
+
+      // Remove o <label> original
+      label.remove();
+
+      // Adiciona o <h:outputLabel> e o <h:inputtext> à nova div
+      newDiv.appendChild(outputLabel);
+      newDiv.appendChild(input);
+
+      // Remove todos os atributos de estilo do div original e dos seus filhos
+      this.removeStyleAttributes(newDiv);
+
+      // Retorna a nova div
+      return newDiv;
+    }
+
+    // Se não houver <label> ou <input>, retorna o div original
+    return originalDiv;
+  }
+
+// Método auxiliar para remover todos os atributos style
+  private removeStyleAttributes(element: HTMLElement): void {
+    // Remove o atributo style do elemento atual
+    element.removeAttribute('style');
+
+    // Remove o atributo style de todos os filhos do elemento
+    const children = Array.from(element.children) as HTMLElement[];
+    children.forEach(child => this.removeStyleAttributes(child));
   }
 }
