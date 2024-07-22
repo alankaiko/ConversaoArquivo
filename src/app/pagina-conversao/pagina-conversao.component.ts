@@ -44,18 +44,10 @@ export class PaginaConversaoComponent {
       this.addBsitPageTitle(fViewElement);
     }
 
-    const mainForm = this.captureMainForm(documentoTotal);
-    if (mainForm) {
-      this.createDivFormRow(mainForm);
-      console.log(documentoTotal);
-      console.log(this.filhosForm);
-    }
-
-    const serializer = new XMLSerializer();
-    this.conteudoPrincipalFinal = serializer.serializeToString(mainForm);
+    this.captureMainForm(documentoTotal);
   }
 
-  captureMainForm(documentoTotal: Document): HTMLElement | null {
+  captureMainForm(documentoTotal: Document) {
     const forms = Array.from(documentoTotal.querySelectorAll('h\\:form')) as HTMLElement[];
 
     for (let form of forms) {
@@ -63,7 +55,35 @@ export class PaginaConversaoComponent {
         this.filhosForm = [];
         this.processarUlEli(form);
         this.removeAndStoreChildren(form);
-        return form;
+
+        if (form) {
+          // Passo 1: Cria e adiciona a <div class="form-row"> ao formulário
+          const formRowDiv = this.createDivFormRow(form);
+
+          // Passo 2: Adiciona os filhos com <label> e <input> dentro da <div class="form-row">
+          this.addFirstChildWithLabelAndInput(formRowDiv);
+
+          // Passo 3: Cria uma nova <div class="row-button"> e a adiciona ao formulário depois da <div class="form-row">
+          const divButton = this.createDivButton();
+          form.appendChild(divButton);
+
+          // Passo 4: Adiciona os botões à nova <div class="row-button">
+          this.filhosForm.forEach(filho => {
+            const hasButton = !!filho.querySelector('h\\:commandButton,a4j\\:commandButton,h\\:outputLink,h\\:commandLink');
+            if (hasButton) {
+              // Cria uma nova <div class="row-button"> para cada botão e adiciona ao <div class="row-button"> principal
+              const buttonDiv = this.createDivButton();
+              buttonDiv.appendChild(filho);
+              divButton.appendChild(buttonDiv);
+            }
+          });
+
+          console.log(documentoTotal);
+          console.log(this.filhosForm);
+        }
+
+        const serializer = new XMLSerializer();
+        this.conteudoPrincipalFinal = serializer.serializeToString(form);
       }
     }
 
@@ -164,15 +184,28 @@ export class PaginaConversaoComponent {
     }
   }
 
-  private createDivFormRow(form: HTMLElement): void {
+  private createDivFormRow(form: HTMLElement): HTMLDivElement {
     const divFormRow = document.createElement('div');
     divFormRow.className = 'form-row';
 
     // Adiciona ao <form> o novo <div class="form-row">
     form.appendChild(divFormRow);
+
+    return divFormRow; // Retorna a referência da nova div
   }
 
+
   private addFirstChildWithLabelAndInput(container: HTMLElement): void {
+    this.filhosForm.forEach(filho => {
+      const hasLabel = !!filho.querySelector('label');
+      const hasInput = !!filho.querySelector('h\\:inputText');
+      const hasButton = !!filho.querySelector('h\\:commandButton,a4j\\:commandButton,h\\:outputLink,h\\:commandLink,a4j\\:commandLink');
+
+      if (hasLabel && hasInput) {
+        container.appendChild(this.transformToColMd4FormGroup(filho)); // Adiciona ao <div class="form-row">
+      }
+    });
+
     if (this.filhosForm.length > 0) {
       // Pega o primeiro item do array filhosForm
       const firstChild = this.filhosForm[1] as HTMLElement;
@@ -231,4 +264,12 @@ export class PaginaConversaoComponent {
     const children = Array.from(element.children) as HTMLElement[];
     children.forEach(child => this.removeStyleAttributes(child));
   }
+
+  private createDivButton(): HTMLDivElement {
+    const divButton = document.createElement('div');
+    divButton.className = 'row-button';
+
+    return divButton; // Retorna a nova div
+  }
+
 }
