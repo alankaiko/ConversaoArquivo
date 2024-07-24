@@ -46,7 +46,7 @@ export class PaginaConversaoComponent {
     this.transformarDivs(documentoTotal);
     this.transformarFormulariosModalPanel(documentoTotal);
     this.ajustarStyleClassDataTable(documentoTotal);
-
+    this.substituirTags(documentoTotal);
     const serializer = new XMLSerializer();
     this.conteudoPrincipalFinal = serializer.serializeToString(documentoTotal);
   }
@@ -94,6 +94,20 @@ export class PaginaConversaoComponent {
     }
 
     return null;
+  }
+
+  downloadFile() {
+    // Cria um blob com o conteúdo HTML
+    const blob = new Blob([this.conteudoPrincipalFinal], { type: 'text/html' });
+
+    // Cria um link temporário para o download
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'documento-modificado.html';
+    a.click();
+
+    // Libera o objeto URL
+    URL.revokeObjectURL(a.href);
   }
 
   private processarUlEli(form: HTMLElement): void {
@@ -292,6 +306,31 @@ export class PaginaConversaoComponent {
 
     dataTables.forEach(dataTable => {
       dataTable.setAttribute('styleClass', 'mt-3');
+    });
+  }
+
+  private substituirTags(documentoTotal: Document): void {
+    // Define um mapa de substituições
+    const substituicoes: { [key: string]: string } = {
+      'rich\\:datatable': 'rich:dataTable'
+      // Adicione mais substituições aqui, se necessário
+    };
+
+    const substituirTag = (element: Element, novaTag: string) => {
+      const novoElemento = documentoTotal.createElement(novaTag);
+      while (element.firstChild) {
+        novoElemento.appendChild(element.firstChild);
+      }
+      Array.from(element.attributes).forEach(attr => {
+        novoElemento.setAttribute(attr.name, attr.value);
+      });
+      element.replaceWith(novoElemento);
+    };
+
+    Object.keys(substituicoes).forEach(tagOriginal => {
+      const novaTag = substituicoes[tagOriginal];
+      const elementos = Array.from(documentoTotal.querySelectorAll(tagOriginal)) as HTMLElement[];
+      elementos.forEach(elemento => substituirTag(elemento, novaTag));
     });
   }
 }

@@ -1,8 +1,7 @@
 <div>
   <h2>Upload de Arquivo JSP</h2>
   <input type="file" (change)="selecionarArquivo($event)" accept=".jsp" required/>
-
-
+  <button (click)="downloadFile()">Download HTML</button>
 
   <div *ngIf="conteudoPrincipalFinal">
     <h3>Conteúdo Modificado do Arquivo:</h3>
