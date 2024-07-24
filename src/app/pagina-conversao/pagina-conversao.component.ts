@@ -18,7 +18,7 @@ export class PaginaConversaoComponent {
     }
   }
 
-  lerArquivo(file: File): void {
+  private lerArquivo(file: File): void {
     const reader = new FileReader();
     reader.onload = () => {
       const arrayBuffer = reader.result as ArrayBuffer;
@@ -29,7 +29,7 @@ export class PaginaConversaoComponent {
     reader.readAsArrayBuffer(file);
   }
 
-  tranformarHtmlEmElemento() {
+  private tranformarHtmlEmElemento() {
     let conteudo = this.processarConteudo();
     const parser = new DOMParser();
     const documentoTotal = parser.parseFromString(conteudo, 'text/html');
@@ -44,12 +44,14 @@ export class PaginaConversaoComponent {
 
     this.captureMainForm(documentoTotal);
     this.transformarDivs(documentoTotal);
+    this.transformarFormulariosModalPanel(documentoTotal);
+    this.ajustarStyleClassDataTable(documentoTotal);
 
     const serializer = new XMLSerializer();
     this.conteudoPrincipalFinal = serializer.serializeToString(documentoTotal);
   }
 
-  captureMainForm(documentoTotal: Document) {
+  private captureMainForm(documentoTotal: Document) {
     const forms = Array.from(documentoTotal.querySelectorAll('h\\:form')) as HTMLElement[];
 
     for (let form of forms) {
@@ -154,17 +156,17 @@ export class PaginaConversaoComponent {
     }) || '';
   }
 
-  addXmlnsAttributeIfMissing(element: HTMLElement): void {
+  private addXmlnsAttributeIfMissing(element: HTMLElement): void {
     if (element.tagName.toLowerCase() === 'jsp:root' && !element.hasAttribute('xmlns:bsit'))
       element.setAttribute('xmlns:bsit', 'http://facelets.bsit-br.com.br');
 
   }
 
-  checkForBsitPageTitle(element: HTMLElement): boolean {
+  private checkForBsitPageTitle(element: HTMLElement): boolean {
     return !!element.querySelector('bsit\\:pageTitle');
   }
 
-  addBsitPageTitle(element: HTMLElement): void {
+  private addBsitPageTitle(element: HTMLElement): void {
     const bsitPageTitle = document.createElement('bsit:pageTitle');
     bsitPageTitle.setAttribute('title', '');
     bsitPageTitle.setAttribute('code', '');
@@ -181,7 +183,7 @@ export class PaginaConversaoComponent {
     }
   }
 
-  manipularFormularios(documentoTotal: Document): void {
+  private manipularFormularios(documentoTotal: Document): void {
     const forms = Array.from(documentoTotal.querySelectorAll('h\\:form')) as HTMLElement[];
     if (forms.length > 0)
       this.moveLiToParent(forms[0]);
@@ -237,7 +239,7 @@ export class PaginaConversaoComponent {
     return newDiv;
   }
 
-  transformarDivs(document: Document): void {
+  private transformarDivs(document: Document): void {
     const floatLeftDivs = Array.from(document.querySelectorAll('div[style*="float: left"]')) as HTMLElement[];
 
     floatLeftDivs.forEach(div => {
@@ -292,12 +294,15 @@ export class PaginaConversaoComponent {
 
   private transformarFormulariosModalPanel(documentoTotal: Document): void {
     const modalPanels = Array.from(documentoTotal.querySelectorAll('rich\\:modalPanel')) as HTMLElement[];
+    console.log('Modal Panels:', modalPanels);
 
     modalPanels.forEach(modalPanel => {
       const forms = Array.from(modalPanel.querySelectorAll('h\\:form')) as HTMLElement[];
+      console.log('Forms:', forms);
 
       forms.forEach(form => {
         if (this.isFormDeletar(form)) {
+          console.log('Form Deletar encontrado:', form);
           this.transformarFormDeletar(form);
         }
       });
@@ -305,8 +310,14 @@ export class PaginaConversaoComponent {
   }
 
   private isFormDeletar(form: HTMLElement): boolean {
-    const label = form.querySelector('label');
-    return label && label.textContent?.trim().includes('Tem certeza que deseja excluir');
+    let modalPanel: HTMLElement | null = form.closest('rich\\:modalPanel');
+
+    if (modalPanel) {
+      const id = modalPanel.getAttribute('id');
+      return id ? id.toLowerCase().includes('delete') : false;
+    }
+
+    return false;
   }
 
   private transformarFormDeletar(form: HTMLElement): void {
@@ -341,5 +352,13 @@ export class PaginaConversaoComponent {
 
     form.appendChild(newDivTextCenter);
     form.appendChild(newDivRowButton);
+  }
+
+  private ajustarStyleClassDataTable(documentoTotal: Document): void {
+    const dataTables = Array.from(documentoTotal.querySelectorAll('rich\\:dataTable')) as HTMLElement[];
+
+    dataTables.forEach(dataTable => {
+      dataTable.setAttribute('styleClass', 'mt-3');
+    });
   }
 }

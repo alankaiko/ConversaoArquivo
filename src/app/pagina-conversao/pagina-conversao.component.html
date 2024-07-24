@@ -2,9 +2,7 @@
   <h2>Upload de Arquivo JSP</h2>
   <input type="file" (change)="selecionarArquivo($event)" accept=".jsp" required/>
 
-  <div *ngIf="conteudoOriginal">
-    <button (click)="tranformarHtmlEmElemento()">transormar em htmlelement</button>
-  </div>
+
 
   <div *ngIf="conteudoPrincipalFinal">
     <h3>Conteúdo Modificado do Arquivo:</h3>
