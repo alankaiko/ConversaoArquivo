@@ -56,31 +56,34 @@ export class PaginaConversaoComponent {
         this.processarUlEli(form);
         this.removeAndStoreChildren(form);
 
-        if (form) {
-          // Passo 1: Cria e adiciona a <div class="form-row"> ao formulário
-          const formRowDiv = this.createDivFormRow(form);
+        let currentDivFormRow = this.createDivFormRow(form);
+        let currentDivRowButton: HTMLDivElement | null = null;
 
-          // Passo 2: Adiciona os filhos com <label> e <input> dentro da <div class="form-row">
-          this.addFirstChildWithLabelAndInput(formRowDiv);
+        this.filhosForm.forEach((filho, index) => {
+          const isButton = this.isButtonElement(filho);
+          const isLastElement = index === this.filhosForm.length - 1;
 
-          // Passo 3: Cria uma nova <div class="row-button"> e a adiciona ao formulário depois da <div class="form-row">
-          const divButton = this.createDivButton();
-          form.appendChild(divButton);
-
-          // Passo 4: Adiciona os botões à nova <div class="row-button">
-          this.filhosForm.forEach(filho => {
-            const hasButton = !!filho.querySelector('h\\:commandButton,a4j\\:commandButton,h\\:outputLink,h\\:commandLink');
-            if (hasButton) {
-              // Cria uma nova <div class="row-button"> para cada botão e adiciona ao <div class="row-button"> principal
-              const buttonDiv = this.createDivButton();
-              buttonDiv.appendChild(filho);
-              divButton.appendChild(buttonDiv);
+          if (isButton) {
+            if (!currentDivRowButton) {
+              currentDivRowButton = this.createDivButton();
+              form.appendChild(currentDivRowButton);
             }
-          });
+            currentDivRowButton.appendChild(filho);
+          } else {
+            if (currentDivRowButton) {
+              currentDivFormRow = this.createDivFormRow(form);
+              currentDivRowButton = null;
+            }
+            currentDivFormRow.appendChild(filho);
+          }
 
-          console.log(documentoTotal);
-          console.log(this.filhosForm);
-        }
+          if (isLastElement && currentDivRowButton) {
+            currentDivFormRow = this.createDivFormRow(form);
+          }
+        });
+
+        console.log(documentoTotal);
+        console.log(this.filhosForm);
 
         const serializer = new XMLSerializer();
         this.conteudoPrincipalFinal = serializer.serializeToString(form);
@@ -194,12 +197,11 @@ export class PaginaConversaoComponent {
     return divFormRow; // Retorna a referência da nova div
   }
 
-
   private addFirstChildWithLabelAndInput(container: HTMLElement): void {
     this.filhosForm.forEach(filho => {
       const hasLabel = !!filho.querySelector('label');
       const hasInput = !!filho.querySelector('h\\:inputText');
-      const hasButton = !!filho.querySelector('h\\:commandButton,a4j\\:commandButton,h\\:outputLink,h\\:commandLink,a4j\\:commandLink');
+      const hasButton = !!filho.querySelector('h\\:commandButton,a4j\\:commandButton,h\\:outputLink,h\\:commandLink');
 
       if (hasLabel && hasInput) {
         container.appendChild(this.transformToColMd4FormGroup(filho)); // Adiciona ao <div class="form-row">
@@ -230,46 +232,35 @@ export class PaginaConversaoComponent {
     const input = originalDiv.querySelector('h\\:inputtext');
 
     if (label && input) {
-      // Cria o novo <h:outputLabel> e transfere o conteúdo do <label>
-      const outputLabel = document.createElement('h:outputLabel');
-      outputLabel.setAttribute('for', input.getAttribute('id') || '');
+      // Cria o novo <h:outputLabel> e transfere o conteúdo do <label> original
+      const newLabel = document.createElement('h:outputLabel');
+      newLabel.innerHTML = label.innerHTML;
 
-      // Cria o conteúdo do <h:outputLabel> a partir do <label>
-      outputLabel.innerHTML = label.innerHTML;
-
-      // Remove o <label> original
-      label.remove();
-
-      // Adiciona o <h:outputLabel> e o <h:inputtext> à nova div
-      newDiv.appendChild(outputLabel);
+      // Adiciona os novos elementos à nova div
+      newDiv.appendChild(newLabel);
       newDiv.appendChild(input);
-
-      // Remove todos os atributos de estilo do div original e dos seus filhos
-      this.removeStyleAttributes(newDiv);
-
-      // Retorna a nova div
-      return newDiv;
     }
 
-    // Se não houver <label> ou <input>, retorna o div original
-    return originalDiv;
+    return newDiv; // Retorna a nova div com a estrutura desejada
   }
 
-// Método auxiliar para remover todos os atributos style
   private removeStyleAttributes(element: HTMLElement): void {
-    // Remove o atributo style do elemento atual
-    element.removeAttribute('style');
+    if (element.hasAttribute('style')) {
+      element.removeAttribute('style');
+    }
 
-    // Remove o atributo style de todos os filhos do elemento
-    const children = Array.from(element.children) as HTMLElement[];
-    children.forEach(child => this.removeStyleAttributes(child));
+    Array.from(element.children).forEach(child => {
+      this.removeStyleAttributes(child as HTMLElement);
+    });
   }
 
   private createDivButton(): HTMLDivElement {
     const divButton = document.createElement('div');
     divButton.className = 'row-button';
-
-    return divButton; // Retorna a nova div
+    return divButton;
   }
 
+  private isButtonElement(element: HTMLElement): boolean {
+    return ['h\\:commandButton', 'a4j\\:commandButton', 'h\\:commandLink', 'h\\:outputLink'].some(tag => element.querySelector(tag));
+  }
 }
