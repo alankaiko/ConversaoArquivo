@@ -35,17 +35,15 @@ export class PaginaConversaoComponent {
     const documentoTotal = parser.parseFromString(conteudo, 'text/html');
 
     const rootElement = documentoTotal.querySelector('jsp\\:root') as HTMLElement;
-    if (rootElement) {
+    if (rootElement)
       this.addXmlnsAttributeIfMissing(rootElement);
-    }
 
     const fViewElement = documentoTotal.querySelector('f\\:view') as HTMLElement;
-    if (fViewElement && !this.checkForBsitPageTitle(fViewElement)) {
+    if (fViewElement && !this.checkForBsitPageTitle(fViewElement))
       this.addBsitPageTitle(fViewElement);
-    }
 
     this.captureMainForm(documentoTotal);
-    this.transformarDivs(documentoTotal); // Adiciona esta linha
+    this.transformarDivs(documentoTotal);
 
     const serializer = new XMLSerializer();
     this.conteudoPrincipalFinal = serializer.serializeToString(documentoTotal);
@@ -81,9 +79,8 @@ export class PaginaConversaoComponent {
             currentDivFormRow.appendChild(filho);
           }
 
-          if (isLastElement && currentDivRowButton) {
+          if (isLastElement && currentDivRowButton)
             currentDivFormRow = this.createDivFormRow(form);
-          }
         });
 
         console.log(documentoTotal);
@@ -105,11 +102,11 @@ export class PaginaConversaoComponent {
 
       lis.forEach(li => {
         Array.from(li.children).forEach(child => {
-          form.insertBefore(child, ul); // Move children of <li> directly to form
+          form.insertBefore(child, ul);
         });
       });
 
-      ul.remove(); // Remove <ul> from DOM
+      ul.remove();
     });
   }
 
@@ -118,8 +115,8 @@ export class PaginaConversaoComponent {
 
     children.forEach(child => {
       if (child instanceof HTMLElement) {
-        this.filhosForm.push(child); // Store the child element
-        form.removeChild(child); // Remove the child from form
+        this.filhosForm.push(child);
+        form.removeChild(child);
       }
     });
   }
@@ -127,9 +124,9 @@ export class PaginaConversaoComponent {
   private isInsideModalPanel(element: HTMLElement): boolean {
     let currentElement: HTMLElement | null = element;
     while (currentElement) {
-      if (currentElement.tagName.toLowerCase() === 'rich:modalpanel') {
+      if (currentElement.tagName.toLowerCase() === 'rich:modalpanel')
         return true;
-      }
+
       currentElement = currentElement.parentElement;
     }
     return false;
@@ -158,9 +155,9 @@ export class PaginaConversaoComponent {
   }
 
   addXmlnsAttributeIfMissing(element: HTMLElement): void {
-    if (element.tagName.toLowerCase() === 'jsp:root' && !element.hasAttribute('xmlns:bsit')) {
+    if (element.tagName.toLowerCase() === 'jsp:root' && !element.hasAttribute('xmlns:bsit'))
       element.setAttribute('xmlns:bsit', 'http://facelets.bsit-br.com.br');
-    }
+
   }
 
   checkForBsitPageTitle(element: HTMLElement): boolean {
@@ -186,19 +183,17 @@ export class PaginaConversaoComponent {
 
   manipularFormularios(documentoTotal: Document): void {
     const forms = Array.from(documentoTotal.querySelectorAll('h\\:form')) as HTMLElement[];
-    if (forms.length > 0) {
+    if (forms.length > 0)
       this.moveLiToParent(forms[0]);
-    }
+
   }
 
   private createDivFormRow(form: HTMLElement): HTMLDivElement {
     const divFormRow = document.createElement('div');
     divFormRow.className = 'form-row';
-
-    // Adiciona ao <form> o novo <div class="form-row">
     form.appendChild(divFormRow);
 
-    return divFormRow; // Retorna a referência da nova div
+    return divFormRow;
   }
 
   private addFirstChildWithLabelAndInput(container: HTMLElement): void {
@@ -207,45 +202,39 @@ export class PaginaConversaoComponent {
       const hasInput = !!filho.querySelector('h\\:inputText');
       const hasButton = !!filho.querySelector('h\\:commandButton,a4j\\:commandButton,h\\:outputLink,h\\:commandLink');
 
-      if (hasLabel && hasInput) {
-        container.appendChild(this.transformToColMd4FormGroup(filho)); // Adiciona ao <div class="form-row">
-      }
+      if (hasLabel && hasInput)
+        container.appendChild(this.transformToColMd4FormGroup(filho));
+
     });
 
     if (this.filhosForm.length > 0) {
-      // Pega o primeiro item do array filhosForm
       const firstChild = this.filhosForm[1] as HTMLElement;
 
-      // Verifica se o item possui <label> e <input>
       const hasLabel = !!firstChild.querySelector('label');
       const hasInput = !!firstChild.querySelector('h\\:inputText');
 
       if (hasLabel && hasInput) {
-        container.appendChild(this.transformToColMd4FormGroup(firstChild)); // Adiciona ao <div class="form-row">
+        container.appendChild(this.transformToColMd4FormGroup(firstChild));
       }
     }
   }
 
   private transformToColMd4FormGroup(originalDiv: HTMLElement): HTMLElement {
-    // Cria a nova div com a classe desejada
     const newDiv = document.createElement('div');
     newDiv.className = 'col-md-4 form-group';
 
-    // Encontra o <label> e o <input> no div original
     const label = originalDiv.querySelector('label');
     const input = originalDiv.querySelector('h\\:inputtext');
 
     if (label && input) {
-      // Cria o novo <h:outputLabel> e transfere o conteúdo do <label> original
       const newLabel = document.createElement('h:outputLabel');
       newLabel.innerHTML = label.innerHTML;
 
-      // Adiciona os novos elementos à nova div
       newDiv.appendChild(newLabel);
       newDiv.appendChild(input);
     }
 
-    return newDiv; // Retorna a nova div com a estrutura desejada
+    return newDiv;
   }
 
   transformarDivs(document: Document): void {
@@ -301,4 +290,56 @@ export class PaginaConversaoComponent {
     return ['h\\:commandButton', 'a4j\\:commandButton', 'h\\:commandLink', 'h\\:outputLink'].some(tag => element.querySelector(tag));
   }
 
+  private transformarFormulariosModalPanel(documentoTotal: Document): void {
+    const modalPanels = Array.from(documentoTotal.querySelectorAll('rich\\:modalPanel')) as HTMLElement[];
+
+    modalPanels.forEach(modalPanel => {
+      const forms = Array.from(modalPanel.querySelectorAll('h\\:form')) as HTMLElement[];
+
+      forms.forEach(form => {
+        if (this.isFormDeletar(form)) {
+          this.transformarFormDeletar(form);
+        }
+      });
+    });
+  }
+
+  private isFormDeletar(form: HTMLElement): boolean {
+    const label = form.querySelector('label');
+    return label && label.textContent?.trim().includes('Tem certeza que deseja excluir');
+  }
+
+  private transformarFormDeletar(form: HTMLElement): void {
+    const divsCenter = Array.from(form.querySelectorAll('div[style*="text-align: center"][align="center"]')) as HTMLElement[];
+    const clearBothDivs = Array.from(form.querySelectorAll('div[style*="clear: both"]')) as HTMLElement[];
+    const label = divsCenter[0]?.querySelector('label');
+    const commandButton = divsCenter[1]?.querySelector('h\\:commandButton');
+    const outputLink = divsCenter[1]?.querySelector('h\\:outputLink');
+
+    const newDivTextCenter = document.createElement('div');
+    newDivTextCenter.className = 'text-center';
+
+    const newLabel = document.createElement('h:outputLabel');
+    newLabel.className = 'font-weight-bold';
+    if (label) {
+      newLabel.innerHTML = label.textContent?.trim() || '';
+    }
+    newDivTextCenter.appendChild(newLabel);
+
+    const newDivRowButton = document.createElement('div');
+    newDivRowButton.className = 'row-button justify-content-center';
+
+    if (commandButton) {
+      newDivRowButton.appendChild(commandButton);
+    }
+    if (outputLink) {
+      newDivRowButton.appendChild(outputLink);
+    }
+
+    divsCenter.forEach(div => div.remove());
+    clearBothDivs.forEach(div => div.remove());
+
+    form.appendChild(newDivTextCenter);
+    form.appendChild(newDivRowButton);
+  }
 }
