@@ -45,6 +45,10 @@ export class PaginaConversaoComponent {
     }
 
     this.captureMainForm(documentoTotal);
+    this.transformarDivs(documentoTotal); // Adiciona esta linha
+
+    const serializer = new XMLSerializer();
+    this.conteudoPrincipalFinal = serializer.serializeToString(documentoTotal);
   }
 
   captureMainForm(documentoTotal: Document) {
@@ -244,6 +248,39 @@ export class PaginaConversaoComponent {
     return newDiv; // Retorna a nova div com a estrutura desejada
   }
 
+  transformarDivs(document: Document): void {
+    const floatLeftDivs = Array.from(document.querySelectorAll('div[style*="float: left"]')) as HTMLElement[];
+
+    floatLeftDivs.forEach(div => {
+      const newDiv = document.createElement('div');
+      newDiv.className = 'col-md-4 form-group';
+
+      while (div.firstChild) {
+        newDiv.appendChild(div.firstChild);
+      }
+
+      div.parentNode?.insertBefore(newDiv, div);
+      div.remove();
+
+      this.removeStyleAttributes(newDiv);
+      this.transformLabel(newDiv);
+    });
+
+    const clearBothDivs = Array.from(document.querySelectorAll('div[style*="clear: both"]')) as HTMLElement[];
+    clearBothDivs.forEach(div => div.remove());
+  }
+
+  private transformLabel(element: HTMLElement): void {
+    const labels = Array.from(element.querySelectorAll('label')) as HTMLElement[];
+
+    labels.forEach(label => {
+      const outputLabel = document.createElement('h:outputLabel');
+      outputLabel.setAttribute('for', label.nextElementSibling?.getAttribute('id') || '');
+      outputLabel.innerHTML = label.innerHTML;
+      label.replaceWith(outputLabel);
+    });
+  }
+
   private removeStyleAttributes(element: HTMLElement): void {
     if (element.hasAttribute('style')) {
       element.removeAttribute('style');
@@ -263,4 +300,5 @@ export class PaginaConversaoComponent {
   private isButtonElement(element: HTMLElement): boolean {
     return ['h\\:commandButton', 'a4j\\:commandButton', 'h\\:commandLink', 'h\\:outputLink'].some(tag => element.querySelector(tag));
   }
+
 }
