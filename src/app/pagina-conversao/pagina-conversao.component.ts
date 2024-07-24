@@ -134,22 +134,6 @@ export class PaginaConversaoComponent {
     return false;
   }
 
-  private moveLiToParent(element: HTMLElement): void {
-    const uls = Array.from(element.querySelectorAll('ul')) as HTMLElement[];
-
-    uls.forEach(ul => {
-      const lis = Array.from(ul.querySelectorAll('li')) as HTMLElement[];
-
-      lis.forEach(li => {
-        Array.from(li.children).forEach(child => {
-          ul.parentNode?.insertBefore(child, ul);
-        });
-      });
-
-      ul.remove();
-    });
-  }
-
   private processarConteudo(): string {
     return this.conteudoOriginal?.replace(/<([a-zA-Z][^\s\/>]*)([^>]*)\/>/g, (match, tagName, attributes) => {
       return `<${tagName}${attributes}></${tagName}>`;
@@ -183,60 +167,12 @@ export class PaginaConversaoComponent {
     }
   }
 
-  private manipularFormularios(documentoTotal: Document): void {
-    const forms = Array.from(documentoTotal.querySelectorAll('h\\:form')) as HTMLElement[];
-    if (forms.length > 0)
-      this.moveLiToParent(forms[0]);
-
-  }
-
   private createDivFormRow(form: HTMLElement): HTMLDivElement {
     const divFormRow = document.createElement('div');
     divFormRow.className = 'form-row';
     form.appendChild(divFormRow);
 
     return divFormRow;
-  }
-
-  private addFirstChildWithLabelAndInput(container: HTMLElement): void {
-    this.filhosForm.forEach(filho => {
-      const hasLabel = !!filho.querySelector('label');
-      const hasInput = !!filho.querySelector('h\\:inputText');
-      const hasButton = !!filho.querySelector('h\\:commandButton,a4j\\:commandButton,h\\:outputLink,h\\:commandLink');
-
-      if (hasLabel && hasInput)
-        container.appendChild(this.transformToColMd4FormGroup(filho));
-
-    });
-
-    if (this.filhosForm.length > 0) {
-      const firstChild = this.filhosForm[1] as HTMLElement;
-
-      const hasLabel = !!firstChild.querySelector('label');
-      const hasInput = !!firstChild.querySelector('h\\:inputText');
-
-      if (hasLabel && hasInput) {
-        container.appendChild(this.transformToColMd4FormGroup(firstChild));
-      }
-    }
-  }
-
-  private transformToColMd4FormGroup(originalDiv: HTMLElement): HTMLElement {
-    const newDiv = document.createElement('div');
-    newDiv.className = 'col-md-4 form-group';
-
-    const label = originalDiv.querySelector('label');
-    const input = originalDiv.querySelector('h\\:inputtext');
-
-    if (label && input) {
-      const newLabel = document.createElement('h:outputLabel');
-      newLabel.innerHTML = label.innerHTML;
-
-      newDiv.appendChild(newLabel);
-      newDiv.appendChild(input);
-    }
-
-    return newDiv;
   }
 
   private transformarDivs(document: Document): void {
@@ -294,15 +230,12 @@ export class PaginaConversaoComponent {
 
   private transformarFormulariosModalPanel(documentoTotal: Document): void {
     const modalPanels = Array.from(documentoTotal.querySelectorAll('rich\\:modalPanel')) as HTMLElement[];
-    console.log('Modal Panels:', modalPanels);
 
     modalPanels.forEach(modalPanel => {
       const forms = Array.from(modalPanel.querySelectorAll('h\\:form')) as HTMLElement[];
-      console.log('Forms:', forms);
 
       forms.forEach(form => {
         if (this.isFormDeletar(form)) {
-          console.log('Form Deletar encontrado:', form);
           this.transformarFormDeletar(form);
         }
       });
