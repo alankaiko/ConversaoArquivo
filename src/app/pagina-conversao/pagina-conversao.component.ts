@@ -30,15 +30,16 @@ export class PaginaConversaoComponent {
   }
 
   private tranformarHtmlEmElemento() {
-    let conteudo = this.processarConteudo();
     const parser = new DOMParser();
-    const documentoTotal = parser.parseFromString(conteudo, 'text/html');
+    const documentoTotal = parser.parseFromString(this.conteudoOriginal, 'application/xml');
 
-    const rootElement = documentoTotal.querySelector('jsp\\:root') as HTMLElement;
+    console.log(documentoTotal);
+
+    const rootElement = documentoTotal.getElementsByTagNameNS('*', 'root')[0] as HTMLElement;
     if (rootElement)
       this.addXmlnsAttributeIfMissing(rootElement);
 
-    const fViewElement = documentoTotal.querySelector('f\\:view') as HTMLElement;
+    const fViewElement = documentoTotal.getElementsByTagNameNS('*','view')[0] as HTMLElement;
     if (fViewElement && !this.checkForBsitPageTitle(fViewElement))
       this.addBsitPageTitle(fViewElement);
 
@@ -85,8 +86,8 @@ export class PaginaConversaoComponent {
             currentDivFormRow = this.createDivFormRow(form);
         });
 
-        console.log(documentoTotal);
-        console.log(this.filhosForm);
+        // console.log(documentoTotal);
+        // console.log(this.filhosForm);
 
         const serializer = new XMLSerializer();
         this.conteudoPrincipalFinal = serializer.serializeToString(form);
@@ -98,7 +99,7 @@ export class PaginaConversaoComponent {
 
   downloadFile() {
     // Cria um blob com o conteúdo HTML
-    const blob = new Blob([this.conteudoPrincipalFinal], { type: 'text/html' });
+    const blob = new Blob([this.conteudoPrincipalFinal], {type: 'text/html'});
 
     // Cria um link temporário para o download
     const a = document.createElement('a');
@@ -148,12 +149,6 @@ export class PaginaConversaoComponent {
     return false;
   }
 
-  private processarConteudo(): string {
-    return this.conteudoOriginal?.replace(/<([a-zA-Z][^\s\/>]*)([^>]*)\/>/g, (match, tagName, attributes) => {
-      return `<${tagName}${attributes}></${tagName}>`;
-    }) || '';
-  }
-
   private addXmlnsAttributeIfMissing(element: HTMLElement): void {
     if (element.tagName.toLowerCase() === 'jsp:root' && !element.hasAttribute('xmlns:bsit'))
       element.setAttribute('xmlns:bsit', 'http://facelets.bsit-br.com.br');
@@ -165,7 +160,9 @@ export class PaginaConversaoComponent {
   }
 
   private addBsitPageTitle(element: HTMLElement): void {
-    const bsitPageTitle = document.createElement('bsit:pageTitle');
+    const namespaceURI = 'http://facelets.bsit-br.com.br'; // Substitua pela URI do namespace se necessário
+    const bsitPageTitle = document.createElementNS(namespaceURI, 'bsit:pageTitle');
+
     bsitPageTitle.setAttribute('title', '');
     bsitPageTitle.setAttribute('code', '');
     bsitPageTitle.setAttribute('module', 'TM');
