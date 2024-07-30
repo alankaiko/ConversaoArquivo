@@ -33,27 +33,27 @@ export class PaginaConversaoComponent {
     const parser = new DOMParser();
     const documentoTotal = parser.parseFromString(this.conteudoOriginal, 'application/xml');
 
-    console.log(documentoTotal);
-
     const rootElement = documentoTotal.getElementsByTagNameNS('*', 'root')[0] as HTMLElement;
     if (rootElement)
       this.addXmlnsAttributeIfMissing(rootElement);
 
-    const fViewElement = documentoTotal.getElementsByTagNameNS('*','view')[0] as HTMLElement;
+    const fViewElement = documentoTotal.getElementsByTagNameNS('*', 'view')[0] as HTMLElement;
     if (fViewElement && !this.checkForBsitPageTitle(fViewElement))
       this.addBsitPageTitle(fViewElement);
 
+    this.getDivsWithClearBoth(documentoTotal);
+
     this.captureMainForm(documentoTotal);
-    this.transformarDivs(documentoTotal);
     this.transformarFormulariosModalPanel(documentoTotal);
-    this.ajustarStyleClassDataTable(documentoTotal);
-    this.substituirTags(documentoTotal);
-    const serializer = new XMLSerializer();
-    this.conteudoPrincipalFinal = serializer.serializeToString(documentoTotal);
+    // this.ajustarStyleClassDataTable(documentoTotal);
+    // this.substituirTags(documentoTotal);
+    // const serializer = new XMLSerializer();
+    // this.conteudoPrincipalFinal = serializer.serializeToString(documentoTotal);
+    console.log(documentoTotal);
   }
 
   private captureMainForm(documentoTotal: Document) {
-    const forms = Array.from(documentoTotal.querySelectorAll('h\\:form')) as HTMLElement[];
+    const forms = Array.from(documentoTotal.getElementsByTagNameNS('*', 'form')) as HTMLElement[];
 
     for (let form of forms) {
       if (!this.isInsideModalPanel(form)) {
@@ -86,8 +86,7 @@ export class PaginaConversaoComponent {
             currentDivFormRow = this.createDivFormRow(form);
         });
 
-        // console.log(documentoTotal);
-        // console.log(this.filhosForm);
+        this.transformarDivs(form);
 
         const serializer = new XMLSerializer();
         this.conteudoPrincipalFinal = serializer.serializeToString(form);
@@ -98,24 +97,21 @@ export class PaginaConversaoComponent {
   }
 
   downloadFile() {
-    // Cria um blob com o conteúdo HTML
     const blob = new Blob([this.conteudoPrincipalFinal], {type: 'text/html'});
 
-    // Cria um link temporário para o download
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'documento-modificado.html';
     a.click();
 
-    // Libera o objeto URL
     URL.revokeObjectURL(a.href);
   }
 
   private processarUlEli(form: HTMLElement): void {
-    const uls = Array.from(form.querySelectorAll('ul')) as HTMLElement[];
+    const uls = Array.from(form.getElementsByTagNameNS('*', 'ul'));
 
     uls.forEach(ul => {
-      const lis = Array.from(ul.querySelectorAll('li')) as HTMLElement[];
+      const lis = Array.from(form.getElementsByTagNameNS('*', 'li'));
 
       lis.forEach(li => {
         Array.from(li.children).forEach(child => {
@@ -131,17 +127,15 @@ export class PaginaConversaoComponent {
     const children = Array.from(form.children) as HTMLElement[];
 
     children.forEach(child => {
-      if (child instanceof HTMLElement) {
-        this.filhosForm.push(child);
-        form.removeChild(child);
-      }
+      this.filhosForm.push(child);
+      form.removeChild(child);
     });
   }
 
   private isInsideModalPanel(element: HTMLElement): boolean {
     let currentElement: HTMLElement | null = element;
     while (currentElement) {
-      if (currentElement.tagName.toLowerCase() === 'rich:modalpanel')
+      if (currentElement.tagName === 'rich:modalPanel')
         return true;
 
       currentElement = currentElement.parentElement;
@@ -156,11 +150,11 @@ export class PaginaConversaoComponent {
   }
 
   private checkForBsitPageTitle(element: HTMLElement): boolean {
-    return !!element.querySelector('bsit\\:pageTitle');
+    return !!element.getElementsByTagNameNS('*', 'bsit\\:pageTitle')[0];
   }
 
   private addBsitPageTitle(element: HTMLElement): void {
-    const namespaceURI = 'http://facelets.bsit-br.com.br'; // Substitua pela URI do namespace se necessário
+    const namespaceURI = 'http://facelets.bsit-br.com.br';
     const bsitPageTitle = document.createElementNS(namespaceURI, 'bsit:pageTitle');
 
     bsitPageTitle.setAttribute('title', '');
@@ -168,7 +162,7 @@ export class PaginaConversaoComponent {
     bsitPageTitle.setAttribute('module', 'TM');
     bsitPageTitle.setAttribute('bean', '#{}');
 
-    const tSaveStateElements = element.querySelectorAll('t\\:saveState');
+    const tSaveStateElements = Array.from(element.getElementsByTagNameNS('*', 'saveState'));
 
     if (tSaveStateElements.length > 0) {
       const lastSaveState = tSaveStateElements[tSaveStateElements.length - 1];
@@ -179,23 +173,25 @@ export class PaginaConversaoComponent {
   }
 
   private createDivFormRow(form: HTMLElement): HTMLDivElement {
-    const divFormRow = document.createElement('div');
+    const divFormRow = document.createElementNS('*', 'div') as HTMLDivElement;
     divFormRow.className = 'form-row';
     form.appendChild(divFormRow);
 
     return divFormRow;
   }
 
-  private transformarDivs(document: Document): void {
-    const floatLeftDivs = Array.from(document.querySelectorAll('div[style*="float: left"]')) as HTMLElement[];
+  private transformarDivs(form: HTMLElement): void {
+    const styledDivs = Array.from(form.querySelectorAll('div[style]')) as HTMLElement[];
 
-    floatLeftDivs.forEach(div => {
+    styledDivs.forEach(div => {
+      if (div.closest('.row-button'))
+        return;
+
       const newDiv = document.createElement('div');
       newDiv.className = 'col-md-4 form-group';
 
-      while (div.firstChild) {
+      while (div.firstChild)
         newDiv.appendChild(div.firstChild);
-      }
 
       div.parentNode?.insertBefore(newDiv, div);
       div.remove();
@@ -204,12 +200,16 @@ export class PaginaConversaoComponent {
       this.transformLabel(newDiv);
     });
 
-    const clearBothDivs = Array.from(document.querySelectorAll('div[style*="clear: both"]')) as HTMLElement[];
-    clearBothDivs.forEach(div => div.remove());
+    const clearBothDivs = Array.from(form.querySelectorAll('div[style*="clear: both"]')) as HTMLElement[];
+    clearBothDivs.forEach(div => {
+      if (!div.closest('.row-button')) {
+        div.remove();
+      }
+    });
   }
 
   private transformLabel(element: HTMLElement): void {
-    const labels = Array.from(element.querySelectorAll('label')) as HTMLElement[];
+    const labels = Array.from(element.getElementsByTagNameNS('*', 'label')) as HTMLElement[];
 
     labels.forEach(label => {
       const outputLabel = document.createElement('h:outputLabel');
@@ -230,20 +230,24 @@ export class PaginaConversaoComponent {
   }
 
   private createDivButton(): HTMLDivElement {
-    const divButton = document.createElement('div');
+    const divButton = document.createElementNS('*', 'div') as HTMLDivElement;
     divButton.className = 'row-button';
     return divButton;
   }
 
   private isButtonElement(element: HTMLElement): boolean {
-    return ['h\\:commandButton', 'a4j\\:commandButton', 'h\\:commandLink', 'h\\:outputLink'].some(tag => element.querySelector(tag));
+    return ['h:commandButton', 'a4j:commandButton', 'h:commandLink', 'h:outputLink'].some(tag => {
+      const [prefix, localName] = tag.split(':');
+      const elements = element.getElementsByTagNameNS('*', localName);
+      return elements.length > 0;
+    });
   }
 
   private transformarFormulariosModalPanel(documentoTotal: Document): void {
-    const modalPanels = Array.from(documentoTotal.querySelectorAll('rich\\:modalPanel')) as HTMLElement[];
+    const modalPanels = Array.from(documentoTotal.getElementsByTagNameNS('*', 'modalPanel')) as HTMLElement[];
 
     modalPanels.forEach(modalPanel => {
-      const forms = Array.from(modalPanel.querySelectorAll('h\\:form')) as HTMLElement[];
+      const forms = Array.from(modalPanel.getElementsByTagNameNS('*', 'form')) as HTMLElement[];
 
       forms.forEach(form => {
         if (this.isFormDeletar(form)) {
@@ -254,48 +258,51 @@ export class PaginaConversaoComponent {
   }
 
   private isFormDeletar(form: HTMLElement): boolean {
-    let modalPanel: HTMLElement | null = form.closest('rich\\:modalPanel');
-
-    if (modalPanel) {
-      const id = modalPanel.getAttribute('id');
-      return id ? id.toLowerCase().includes('delete') : false;
+    let currentElement: HTMLElement | null = form.parentElement;
+    while (currentElement) {
+      if (currentElement.tagName === 'rich:modalPanel') {
+        const id = currentElement.getAttribute('id');
+        return id ? id.toLowerCase().includes('delete') : false;
+      }
+      currentElement = currentElement.parentElement;
     }
 
     return false;
   }
 
   private transformarFormDeletar(form: HTMLElement): void {
-    const divsCenter = Array.from(form.querySelectorAll('div[style*="text-align: center"][align="center"]')) as HTMLElement[];
-    const clearBothDivs = Array.from(form.querySelectorAll('div[style*="clear: both"]')) as HTMLElement[];
-    const label = divsCenter[0]?.querySelector('label');
-    const commandButton = divsCenter[1]?.querySelector('h\\:commandButton');
-    const outputLink = divsCenter[1]?.querySelector('h\\:outputLink');
+    console.log(form);
+    const divsCenter = Array.from(form.getElementsByTagNameNS('*', 'div[style*="text-align: center"][align="center"]')) as HTMLElement[];
+    const clearBothDivs = Array.from(form.getElementsByTagNameNS('*', 'div[style*="clear: both"]')) as HTMLElement[];
+    const label = divsCenter[0]?.getElementsByTagNameNS('*', 'label');
+    const commandButton = divsCenter[1]?.getElementsByTagNameNS('*', 'commandButton');
+    const outputLink = divsCenter[1]?.getElementsByTagNameNS('*', 'outputLink');
 
-    const newDivTextCenter = document.createElement('div');
-    newDivTextCenter.className = 'text-center';
-
-    const newLabel = document.createElement('h:outputLabel');
-    newLabel.className = 'font-weight-bold';
-    if (label) {
-      newLabel.innerHTML = label.textContent?.trim() || '';
-    }
-    newDivTextCenter.appendChild(newLabel);
-
-    const newDivRowButton = document.createElement('div');
-    newDivRowButton.className = 'row-button justify-content-center';
-
-    if (commandButton) {
-      newDivRowButton.appendChild(commandButton);
-    }
-    if (outputLink) {
-      newDivRowButton.appendChild(outputLink);
-    }
-
-    divsCenter.forEach(div => div.remove());
-    clearBothDivs.forEach(div => div.remove());
-
-    form.appendChild(newDivTextCenter);
-    form.appendChild(newDivRowButton);
+    // const newDivTextCenter = document.createElement('div');
+    // newDivTextCenter.className = 'text-center';
+    //
+    // const newLabel = document.createElement('h:outputLabel');
+    // newLabel.className = 'font-weight-bold';
+    // if (label) {
+    //   newLabel.innerHTML = label[0].textContent?.trim() || '';
+    // }
+    // newDivTextCenter.appendChild(newLabel);
+    //
+    // const newDivRowButton = document.createElement('div');
+    // newDivRowButton.className = 'row-button justify-content-center';
+    //
+    // if (commandButton) {
+    //   newDivRowButton.appendChild(commandButton[0]);
+    // }
+    // if (outputLink) {
+    //   newDivRowButton.appendChild(outputLink[0]);
+    // }
+    //
+    // divsCenter.forEach(div => div.remove());
+    // clearBothDivs.forEach(div => div.remove());
+    //
+    // form.appendChild(newDivTextCenter);
+    // form.appendChild(newDivRowButton);
   }
 
   private ajustarStyleClassDataTable(documentoTotal: Document): void {
@@ -329,5 +336,10 @@ export class PaginaConversaoComponent {
       const elementos = Array.from(documentoTotal.querySelectorAll(tagOriginal)) as HTMLElement[];
       elementos.forEach(elemento => substituirTag(elemento, novaTag));
     });
+  }
+
+  private getDivsWithClearBoth(documentoTotal: Document) {
+    const clearBothDivs = Array.from(documentoTotal.querySelectorAll('div[style*="clear: both"]')) as HTMLElement[];
+    clearBothDivs.forEach(divBoth => divBoth.remove());
   }
 }
